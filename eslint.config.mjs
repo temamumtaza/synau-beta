@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Mastra build output (large bundled files)
+    ".mastra/**",
+    // Convex auto-generated files
+    "convex/_generated/**",
   ]),
 ]);
 

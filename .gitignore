@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (contains secrets — never commit)
 .env*
 
 # vercel
@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Mastra build output (large, generated)
+.mastra/
+
+# Mastra local storage (SQLite — dev only)
+mastra.db
+mastra.db-shm
+mastra.db-wal
+
+# Local agent / skills configs
+.agents/
+.claude/
+skills-lock.json
