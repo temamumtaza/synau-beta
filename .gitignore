@@ -52,3 +52,6 @@ mastra.db-wal
 .agents/
 .claude/
 skills-lock.json
+
+# opencode CLI config (contains API keys — never commit)
+opencode.json
