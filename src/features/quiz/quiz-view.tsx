@@ -154,21 +154,21 @@ export function QuizView({
     setCurrentQ(0);
   };
 
-  // ─── Idle state ─��─────────────────────────────────────────────────────────
+  // ─── Idle state ──────────────────────────────────────────────────────────
   if (quizState === 'idle') {
     return (
-      <div className="flex flex-col items-center py-16 text-center">
-        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-          <Trophy className="h-8 w-8 text-gray-600" />
+      <div className="flex flex-col items-center py-12 text-center">
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-foreground/70">
+          <Trophy className="h-8 w-8" />
         </div>
         <h2 className="text-lg font-semibold">
           {sourceType === 'lesson' ? 'Kuis Lesson' : sourceType === 'chapter' ? 'Kuis Chapter' : 'Ujian Final'}
         </h2>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           {questionCount} pertanyaan · Nilai lulus ≥{passingScore}%
         </p>
         {error && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
@@ -183,10 +183,10 @@ export function QuizView({
   // ─── Generating state ─────────────────────────────────────────────────────
   if (quizState === 'generating' || quizState === 'reviewing') {
     return (
-      <div className="flex flex-col items-center py-16 text-center">
-        <Loader2 className="mb-4 h-8 w-8 animate-spin" />
-        <p className="text-sm text-gray-500">
-          {quizState === 'generating' ? 'Membuat pertanyaan...' : 'Menilai jawaban...'}
+      <div className="flex flex-col items-center py-12 text-center">
+        <Loader2 className="mb-4 h-8 w-8 animate-spin text-foreground" />
+        <p className="text-sm text-muted-foreground">
+          {quizState === 'generating' ? 'Membuat pertanyaan…' : 'Menilai jawaban…'}
         </p>
       </div>
     );
@@ -201,15 +201,15 @@ export function QuizView({
       <div className="space-y-6">
         {/* Progress */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-gray-400">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Pertanyaan {currentQ + 1} dari {questions.length}</span>
-            <span>{Math.round(progress)}%</span>
+            <span className="font-medium tabular-nums">{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-1" />
         </div>
 
         {/* Question */}
-        <Card className="border border-gray-200">
+        <Card className="shadow-none">
           <CardContent className="p-6">
             <p className="text-base font-medium leading-relaxed">{q.text}</p>
           </CardContent>
@@ -227,14 +227,14 @@ export function QuizView({
                 key={opt.id}
                 onClick={() => selectAnswer(opt.id)}
                 disabled={isAnswered}
-                className={`w-full rounded-lg border px-4 py-3.5 text-left text-sm transition-all ${
+                className={`w-full rounded-lg border px-4 py-3.5 text-left text-sm transition-colors ${
                   isCorrect
-                    ? 'border-black bg-black text-white'
+                    ? 'border-foreground bg-primary text-primary-foreground'
                     : isWrong
-                    ? 'border-red-400 bg-red-50 text-red-700'
+                    ? 'border-destructive/40 bg-destructive/5 text-destructive'
                     : isSelected
-                    ? 'border-black bg-gray-50'
-                    : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                    ? 'border-foreground bg-secondary'
+                    : 'border-border hover:border-foreground/40 hover:bg-secondary/50'
                 } ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
               >
                 <span className="flex items-center gap-3">
@@ -250,12 +250,12 @@ export function QuizView({
 
         {/* Explanation (after answering) */}
         {isAnswered && (
-          <Card className="border border-gray-100 bg-gray-50">
+          <Card className="border-none bg-accent/60 shadow-none">
             <CardContent className="p-4">
-              <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
+              <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                 Penjelasan
               </p>
-              <p className="mt-2 text-sm text-gray-700">{q.explanation}</p>
+              <p className="mt-2 text-sm text-foreground/80">{q.explanation}</p>
             </CardContent>
           </Card>
         )}
@@ -289,31 +289,31 @@ export function QuizView({
       <div className="space-y-8">
         {/* Score card */}
         <Card
-          className={`border-2 ${
-            result.passed ? 'border-black' : 'border-gray-300'
+          className={`border-2 shadow-none ${
+            result.passed ? 'border-foreground' : 'border-border'
           }`}
         >
           <CardContent className="p-8 text-center">
             <div
               className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
-                result.passed ? 'bg-black' : 'bg-gray-100'
+                result.passed ? 'bg-primary' : 'bg-secondary'
               }`}
             >
               {result.passed ? (
-                <Trophy className="h-8 w-8 text-white" />
+                <Trophy className="h-8 w-8 text-primary-foreground" />
               ) : (
-                <XCircle className="h-8 w-8 text-gray-400" />
+                <XCircle className="h-8 w-8 text-muted-foreground" />
               )}
             </div>
-            <p className="text-4xl font-bold">{result.score}%</p>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="text-4xl font-semibold tracking-tight tabular-nums">{result.score}%</p>
+            <p className="mt-2 text-sm text-muted-foreground">
               Nilai lulus: {passingScore}%
             </p>
             <Badge
               className={`mt-3 ${
                 result.passed
-                  ? 'bg-black text-white'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground'
               }`}
               variant="outline"
             >
@@ -328,8 +328,8 @@ export function QuizView({
             <p className="text-sm font-medium">Topik yang perlu diperkuat:</p>
             <ul className="space-y-2">
               {result.weakTopics.map((topic, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground/70">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   {topic}
                 </li>
               ))}

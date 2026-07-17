@@ -8,12 +8,27 @@
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL!;
 const CONVEX_SITE_URL = CONVEX_URL.replace('.cloud', '.site');
 
-export async function convexQuery<T = unknown>(path: string, args: unknown): Promise<T> {
+export type ConvexCacheOptions = {
+  /** Time in seconds the response is considered fresh. Omit to never cache. */
+  revalidate?: number;
+  /** Next.js cache tags for on-demand invalidation via revalidateTag(). */
+  tags?: string[];
+};
+
+export async function convexQuery<T = unknown>(
+  path: string,
+  args: unknown,
+  options: ConvexCacheOptions = {}
+): Promise<T> {
   const res = await fetch(`${CONVEX_SITE_URL}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path, args, format: 'json' }),
-    cache: 'no-store',
+    cache: options.revalidate !== undefined ? undefined : 'no-store',
+    next:
+      options.revalidate !== undefined
+        ? { revalidate: options.revalidate, tags: options.tags }
+        : undefined,
   });
 
   if (!res.ok) {

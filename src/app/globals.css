@@ -7,9 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-body: var(--font-inter);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,39 +49,44 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+  Synau Core — Academic Minimalism.
+  Off-white canvas (#f9f9f9) + white cards = tonal layering.
+  High-contrast monochrome. No shadows, no gradients. 8px grid.
+*/
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --background: oklch(0.981 0 0); /* #f9f9f9 canvas */
+  --foreground: oklch(0.188 0 0); /* #1b1b1b ink */
+  --card: oklch(1 0 0); /* #ffffff raised surface */
+  --card-foreground: oklch(0.188 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.188 0 0);
+  --primary: oklch(0.145 0 0); /* near-black for emphasis */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --secondary: oklch(0.957 0 0); /* #f3f3f3 subtle fill */
+  --secondary-foreground: oklch(0.188 0 0);
+  --muted: oklch(0.957 0 0);
+  --muted-foreground: oklch(0.45 0 0); /* #5e5e5e meta text */
+  --accent: oklch(0.937 0 0); /* #eeeeee inset wells */
+  --accent-foreground: oklch(0.188 0 0);
+  --destructive: oklch(0.518 0.22 25); /* #ba1a1a */
+  --border: oklch(0.918 0 0); /* #e2e2e2 hairline */
+  --input: oklch(0.918 0 0);
+  --ring: oklch(0.145 0 0); /* focus → black border */
+  --chart-1: oklch(0.145 0 0);
+  --chart-2: oklch(0.4 0 0);
+  --chart-3: oklch(0.55 0 0);
+  --chart-4: oklch(0.7 0 0);
+  --chart-5: oklch(0.85 0 0);
+  --radius: 0.5rem; /* 8px base, crisp-soft */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.188 0 0);
+  --sidebar-primary: oklch(0.145 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.957 0 0);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.918 0 0);
+  --sidebar-ring: oklch(0.145 0 0);
 }
 
 .dark {
@@ -90,8 +96,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -102,15 +108,15 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.985 0 0);
+  --chart-2: oklch(0.708 0 0);
+  --chart-3: oklch(0.556 0 0);
+  --chart-4: oklch(0.439 0 0);
+  --chart-5: oklch(0.371 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
@@ -123,8 +129,84 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
   }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* AI Response Block — #f9f9f9 well + 2px black left rule + sparkle.
+     Distinguishes AI-generated content from authored chrome. */
+  .synau-ai {
+    @apply relative rounded-lg bg-accent/60 px-5 py-4 text-[0.95rem] leading-relaxed text-foreground/90;
+  }
+  .synau-ai::before {
+    content: "";
+    @apply absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-foreground;
+  }
+
+  /* Markdown prose — rendered from AI lesson content (already HTML-escaped).
+     Scoped under .md-prose so styles don't leak into app chrome. */
+  .md-prose {
+    @apply text-[1.05rem] leading-7 text-foreground/90;
+  }
+  .md-prose .md-p {
+    @apply my-3;
+  }
+  .md-prose .md-p:first-child {
+    @apply mt-0;
+  }
+  .md-prose .md-p:last-child {
+    @apply mb-0;
+  }
+  .md-prose .md-h1 {
+    @apply mt-6 mb-2 text-2xl font-semibold tracking-tight;
+  }
+  .md-prose .md-h2 {
+    @apply mt-6 mb-2 text-xl font-semibold tracking-tight;
+  }
+  .md-prose .md-h3 {
+    @apply mt-5 mb-2 text-lg font-semibold tracking-tight;
+  }
+  .md-prose .md-h4 {
+    @apply mt-4 mb-1.5 text-base font-semibold;
+  }
+  .md-prose strong {
+    @apply font-semibold text-foreground;
+  }
+  .md-prose em {
+    @apply italic;
+  }
+  .md-prose code {
+    @apply rounded bg-secondary px-1.5 py-0.5 font-mono text-[0.85em] text-foreground/90;
+  }
+  .md-prose .md-pre {
+    @apply my-4 overflow-x-auto rounded-lg border border-border bg-secondary/60 p-4;
+  }
+  .md-prose .md-pre .md-code {
+    @apply block bg-transparent p-0 font-mono text-[0.85rem] leading-6 text-foreground/90;
+  }
+  .md-prose .md-ul {
+    @apply my-3 space-y-1.5 pl-5;
+    list-style: disc;
+  }
+  .md-prose .md-ol {
+    @apply my-3 space-y-1.5 pl-5;
+    list-style: decimal;
+  }
+  .md-prose .md-ul li,
+  .md-prose .md-ol li {
+    @apply text-foreground/85;
+  }
+  .md-prose .md-quote {
+    @apply my-3 border-l-2 border-foreground/60 pl-4 italic text-foreground/75;
+  }
+  .md-prose hr {
+    @apply my-6 border-border;
+  }
+  .md-prose a {
+    @apply font-medium text-foreground underline decoration-foreground/40 underline-offset-2 transition-colors hover:decoration-foreground;
   }
 }
