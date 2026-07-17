@@ -32,7 +32,7 @@ const generationSteps = [
   { id: 'reviewing', label: 'Mengulas kurikulum...', icon: BookOpen },
   { id: 'researching', label: 'Riset materi pelajaran 1...', icon: Zap },
   { id: 'generating', label: 'Menghasilkan konten lesson...', icon: BookOpen },
-  { id: 'validating', label: 'Validasi kualitas (LQS)...', icon: Target },
+
 ];
 
 export function NewCourseForm() {
@@ -118,10 +118,10 @@ export function NewCourseForm() {
                 key={s.id}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${
                   isActive
-                    ? 'bg-black text-white'
+                    ? 'bg-primary text-primary-foreground'
                     : isDone
-                    ? 'text-gray-400 line-through'
-                    : 'text-gray-300'
+                    ? 'text-muted-foreground line-through'
+                    : 'text-muted-foreground/40'
                 }`}
               >
                 {isActive ? (
@@ -135,7 +135,7 @@ export function NewCourseForm() {
           })}
         </div>
         {step === 'done' && (
-          <p className="text-sm text-gray-500">Mengarahkan ke kursus...</p>
+          <p className="text-sm text-muted-foreground">Mengarahkan ke kursus…</p>
         )}
       </div>
     );
@@ -149,7 +149,7 @@ export function NewCourseForm() {
           <Label htmlFor="goal" className="text-base font-medium">
             Apa yang ingin kamu pelajari?
           </Label>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Jelaskan tujuanmu — AI akan merancang kurikulum lengkap untukmu.
           </p>
           <Input
@@ -159,7 +159,7 @@ export function NewCourseForm() {
             {...form.register('goal')}
           />
           {form.formState.errors.goal && (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-destructive">
               {form.formState.errors.goal.message}
             </p>
           )}
@@ -186,7 +186,7 @@ export function NewCourseForm() {
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
@@ -208,7 +208,7 @@ export function NewCourseForm() {
 
       {/* Example goals */}
       <div className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
+        <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
           Contoh tujuan belajar
         </p>
         <div className="flex flex-wrap gap-2">
@@ -217,7 +217,7 @@ export function NewCourseForm() {
               key={goal}
               type="button"
               onClick={() => form.setValue('goal', goal)}
-              className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-black hover:text-black"
+              className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
             >
               {goal}
             </button>

@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
 
     const lessonContent = output.lessonContent;
     const citations = output.citations ?? [];
-    const lqsScore = output.lqsScore ?? 0;
 
     if (!lessonContent) {
       await convexMutation('lessons:setFailed', { id: lessonId });
@@ -67,15 +66,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Persist ke Convex
-    await convexMutation('lessons:setReady', { id: lessonId, lqs: lqsScore });
+    await convexMutation('lessons:setReady', { id: lessonId });
 
     await convexMutation('lessons:saveContent', {
       lessonId,
       objective: lessonContent.objective ?? parsed.data.lessonObjective,
-      explanation: lessonContent.explanation,
-      examples: lessonContent.examples ?? [],
-      summary: lessonContent.summary ?? '',
-      keyPoints: lessonContent.keyPoints ?? [],
+      blocks: lessonContent.blocks ?? [],
       version: 1,
     });
 
@@ -100,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { data: { lessonId, lessonContent, citations, lqsScore } },
+      { data: { lessonId, lessonContent, citations } },
       { status: 200 }
     );
   } catch (err) {

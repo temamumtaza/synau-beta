@@ -3,6 +3,7 @@
 // but intermediate `any` casts are needed for cross-step data flow.
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { teacherOutputSchema, type LessonContent } from '../agents/lesson-blocks';
 
 // Agents are accessed via mastra.getAgent() inside step execute functions.
 // No direct imports needed — workflows orchestrate, agents don't call each other.
@@ -402,22 +403,6 @@ const generateLessonStep = createStep({
     const agent = mastra?.getAgent('teacherAgent');
     if (!agent) throw new Error('teacherAgent not found');
 
-    const lessonSchema = z.object({
-      status: z.enum(['ready', 'rejected']),
-      rejectionReason: z.string().nullable(),
-      lesson: z
-        .object({
-          title: z.string(),
-          objective: z.string(),
-          explanation: z.string(),
-          examples: z.array(z.object({ title: z.string(), content: z.string() })),
-          summary: z.string(),
-          keyPoints: z.array(z.string()),
-          citedSourceUrls: z.array(z.string()),
-        })
-        .nullable(),
-    });
-
     const prompt = `
 Create lesson content for the following specification.
 
@@ -433,25 +418,36 @@ Return ONLY valid JSON matching the lesson schema.
     `.trim();
 
     const result = await agent.generate(prompt, {
-      structuredOutput: { schema: lessonSchema },
+      structuredOutput: { schema: teacherOutputSchema },
     });
 
-    const lessonResult = result.object as z.infer<typeof lessonSchema>;
+    const lessonResult = result.object;
 
-    // If the model "rejected" the lesson, fall back to generating basic content
+    // If the model "rejected" the lesson, fall back to building basic content
     // from the knowledge package rather than failing the whole workflow.
     if (lessonResult.status === 'rejected' || !lessonResult.lesson) {
       console.warn('[generateLessonStep] Lesson was rejected by Teacher Agent. Building fallback lesson from knowledge package.');
-      const fallbackLesson = {
+      const facts = (inputData.knowledgePackage as any)?.verifiedFacts ?? [];
+      const sources = (inputData.knowledgePackage as any)?.sources ?? [];
+      const fallbackLesson: LessonContent = {
         title: inputData.firstLesson.title,
         objective: inputData.firstLesson.objective,
-        explanation: (inputData.knowledgePackage as any)?.verifiedFacts
-          ?.map((f: any) => f.fact)
-          .join('\n\n') ?? 'Lesson content unavailable.',
-        examples: [],
-        summary: 'Auto-generated summary from verified facts.',
-        keyPoints: (inputData.knowledgePackage as any)?.topicCoverage ?? [],
-        citedSourceUrls: (inputData.knowledgePackage as any)?.sources?.map((s: any) => s.url) ?? [],
+        blocks: [
+          {
+            type: 'text',
+            content:
+              facts
+                .map((f: any) => f.fact)
+                .filter(Boolean)
+                .join('\n\n') || 'Lesson content unavailable.',
+          },
+          {
+            type: 'keyPoints',
+            points: (inputData.knowledgePackage as any)?.topicCoverage ?? [],
+          },
+          { type: 'summary', content: 'Auto-generated summary from verified facts.' },
+        ],
+        citedSourceUrls: sources.map((s: any) => s.url).filter(Boolean),
       };
       return {
         roadmap: inputData.roadmap,
@@ -567,15 +563,11 @@ const buildCitationsStep = createStep({
     }),
     lessonContent: z.any(),
     citations: z.array(z.any()),
-    lqsScore: z.number(),
   }),
   execute: async ({ inputData, mastra }) => {
     const citationAgent = mastra?.getAgent('citationBuilderAgent');
-    const reviewAgent = mastra?.getAgent('learningReviewerAgent');
     if (!citationAgent) throw new Error('citationBuilderAgent not found');
-    if (!reviewAgent) throw new Error('learningReviewerAgent not found');
 
-    // Build citations
     const citationSchema = z.object({
       citations: z.array(
         z.object({
@@ -605,46 +597,11 @@ Return ONLY valid JSON matching the citation schema.
 
     const citations = (citationResult.object as z.infer<typeof citationSchema>).citations;
 
-    // Compute LQS
-    const lqsSchema = z.object({
-      status: z.enum(['approved', 'needs_revision']),
-      totalScore: z.number(),
-      metrics: z.record(z.any()),
-      revisionInstructions: z.array(z.string()),
-    });
-
-    const lqsPrompt = `
-Evaluate the quality of the following lesson content using the Learning Quality Score (LQS) rubric.
-
-Lesson Content:
-${JSON.stringify(inputData.lessonContent, null, 2)}
-
-Citations:
-${JSON.stringify(citations, null, 2)}
-
-Return ONLY valid JSON matching the LQS evaluation schema.
-    `.trim();
-
-    const lqsResult = await reviewAgent.generate(lqsPrompt, {
-      structuredOutput: { schema: lqsSchema },
-    });
-
-    const lqs = lqsResult.object as z.infer<typeof lqsSchema>;
-
-    // Don't throw on low LQS — record the score and continue.
-    // The lesson will be saved with its LQS score visible to the user.
-    if (lqs.status === 'needs_revision') {
-      console.warn(
-        `[buildCitationsStep] LQS below ideal threshold (${lqs.totalScore}/100). Lesson saved with score for review.`
-      );
-    }
-
     return {
       roadmap: inputData.roadmap,
       firstLesson: inputData.firstLesson,
       lessonContent: inputData.lessonContent,
       citations,
-      lqsScore: lqs.totalScore,
     };
   },
 });
@@ -666,7 +623,6 @@ export const courseGenerationWorkflow = createWorkflow({
     }),
     lessonContent: z.any(),
     citations: z.array(z.any()),
-    lqsScore: z.number(),
   }),
 })
   .then(generateRoadmapStep)

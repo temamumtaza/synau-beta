@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { teacherOutputSchema } from '../agents/lesson-blocks';
 
 // ─── Lesson Workflow ───────────────────────────────────────────────────────
 // Flow: Open Lesson → Generate → Citation → Review → Ready
@@ -145,27 +146,13 @@ const teachLessonStep = createStep({
     if (!teacherAgentInstance) throw new Error('teacherAgent not found');
     if (!factCheckerAgentInstance) throw new Error('factCheckerAgent not found');
 
-    const lessonSchema = z.object({
-      status: z.enum(['ready', 'rejected']),
-      rejectionReason: z.string().nullable(),
-      lesson: z.object({
-        title: z.string(),
-        objective: z.string(),
-        explanation: z.string(),
-        examples: z.array(z.object({ title: z.string(), content: z.string() })),
-        summary: z.string(),
-        keyPoints: z.array(z.string()),
-        citedSourceUrls: z.array(z.string()),
-      }).nullable(),
-    });
-
     const lessonResult = await teacherAgentInstance.generate(
       `Create lesson: "${inputData.lessonTitle}"\nObjective: "${inputData.lessonObjective}"\nKnowledge Package: ${JSON.stringify(inputData.knowledgePackage)}\nReturn ONLY valid JSON.`,
-      { structuredOutput: { schema: lessonSchema } }
+      { structuredOutput: { schema: teacherOutputSchema } }
     );
 
-    const lesson = lessonResult.object as z.infer<typeof lessonSchema>;
-    if (lesson.status === 'rejected') {
+    const lesson = lessonResult.object;
+    if (lesson.status === 'rejected' || !lesson.lesson) {
       throw new Error(`Lesson rejected: ${lesson.rejectionReason}`);
     }
 
@@ -197,7 +184,7 @@ const teachLessonStep = createStep({
 
 const citeLessonStep = createStep({
   id: 'citeLesson',
-  description: 'Build citations and run LQS evaluation',
+  description: 'Build citations for the lesson',
   inputSchema: z.object({
     lessonId: z.string(),
     lessonContent: z.any(),
@@ -207,14 +194,11 @@ const citeLessonStep = createStep({
     lessonId: z.string(),
     lessonContent: z.any(),
     citations: z.array(z.any()),
-    lqsScore: z.number(),
     status: z.literal('ready'),
   }),
   execute: async ({ inputData, mastra }) => {
     const citationAgentInstance = mastra?.getAgent('citationBuilderAgent');
-    const reviewAgentInstance = mastra?.getAgent('learningReviewerAgent');
     if (!citationAgentInstance) throw new Error('citationBuilderAgent not found');
-    if (!reviewAgentInstance) throw new Error('learningReviewerAgent not found');
 
     const citationSchema = z.object({
       citations: z.array(z.object({
@@ -235,29 +219,10 @@ const citeLessonStep = createStep({
 
     const citations = (citeResult.object as z.infer<typeof citationSchema>).citations;
 
-    const lqsSchema = z.object({
-      status: z.enum(['approved', 'needs_revision']),
-      totalScore: z.number(),
-      metrics: z.record(z.any()),
-      revisionInstructions: z.array(z.string()),
-    });
-
-    const lqsResult = await reviewAgentInstance.generate(
-      `Evaluate LQS for:\n${JSON.stringify(inputData.lessonContent)}\nCitations:\n${JSON.stringify(citations)}\nReturn ONLY valid JSON.`,
-      { structuredOutput: { schema: lqsSchema } }
-    );
-
-    const lqs = lqsResult.object as z.infer<typeof lqsSchema>;
-
-    if (lqs.status === 'needs_revision') {
-      throw new Error(`LQS too low (${lqs.totalScore}/100). ${lqs.revisionInstructions.join('; ')}`);
-    }
-
     return {
       lessonId: inputData.lessonId,
       lessonContent: inputData.lessonContent,
       citations,
-      lqsScore: lqs.totalScore,
       status: 'ready' as const,
     };
   },
@@ -277,7 +242,6 @@ export const lessonWorkflow = createWorkflow({
     lessonId: z.string(),
     lessonContent: z.any(),
     citations: z.array(z.any()),
-    lqsScore: z.number(),
     status: z.literal('ready'),
   }),
 })

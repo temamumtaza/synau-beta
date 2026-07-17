@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // The final step (buildCitations) outputs { roadmap, firstLesson, lessonContent, citations, lqsScore }
+    // The final step (buildCitations) outputs { roadmap, firstLesson, lessonContent, citations }
     // But if that step failed, walk backwards to find latest step with roadmap.
     const buildCitationsStep = steps.buildCitations;
     const output = buildCitationsStep?.output ?? {};
@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
     const firstLesson = output.firstLesson;
     const lessonContent = output.lessonContent;
     const citations = output.citations ?? [];
-    const lqsScore = output.lqsScore ?? 0;
 
     if (!roadmap) {
       console.error('[POST /api/courses] No roadmap in final output. Full output:', JSON.stringify(output).substring(0, 500));
@@ -115,7 +114,7 @@ export async function POST(req: NextRequest) {
     if (!lessonContent) {
       console.error('[POST /api/courses] No lessonContent in final output. Output keys:', Object.keys(output));
       throw new Error(
-        'Workflow produced a roadmap but the lesson was rejected (fact check / LQS threshold). Try a different goal.'
+        'Workflow produced a roadmap but the lesson was rejected (fact check failed). Try a different goal.'
       );
     }
 
@@ -191,16 +190,12 @@ export async function POST(req: NextRequest) {
     if (firstLessonConvexId) {
       await convexMutation('lessons:setReady', {
         id: firstLessonConvexId,
-        lqs: lqsScore,
       });
 
       await convexMutation('lessons:saveContent', {
         lessonId: firstLessonConvexId,
         objective: lessonContent.objective ?? firstLesson.objective,
-        explanation: lessonContent.explanation,
-        examples: lessonContent.examples ?? [],
-        summary: lessonContent.summary ?? '',
-        keyPoints: lessonContent.keyPoints ?? [],
+        blocks: lessonContent.blocks ?? [],
         version: 1,
       });
 
@@ -242,7 +237,6 @@ export async function POST(req: NextRequest) {
           roadmap,
           lessonContent,
           citations,
-          lqsScore,
         },
       },
       { status: 201 }

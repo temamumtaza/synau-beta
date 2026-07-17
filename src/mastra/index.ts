@@ -12,7 +12,6 @@ import { curriculumReviewerAgent } from './agents/curriculum-reviewer-agent';
 import { teacherAgent } from './agents/teacher-agent';
 import { factCheckerAgent } from './agents/fact-checker-agent';
 import { citationBuilderAgent } from './agents/citation-builder-agent';
-import { learningReviewerAgent } from './agents/learning-reviewer-agent';
 import { quizAgent } from './agents/quiz-agent';
 import { progressAgent } from './agents/progress-agent';
 import { adaptiveLearningAgent } from './agents/adaptive-learning-agent';
@@ -38,7 +37,6 @@ export const mastra = new Mastra({
     teacherAgent,
     factCheckerAgent,
     citationBuilderAgent,
-    learningReviewerAgent,
     quizAgent,
     progressAgent,
     adaptiveLearningAgent,

@@ -215,7 +215,7 @@ convex/                                 # Convex backend
 | `teacherAgent` | `teacher-agent.ts` | Produces lesson content |
 | `factCheckerAgent` | `fact-checker-agent.ts` | Flags unsupported claims |
 | `citationBuilderAgent` | `citation-builder-agent.ts` | APA-style citations |
-| `learningReviewerAgent` | `learning-reviewer-agent.ts` | Computes LQS (0-100) |
+
 | `quizAgent` | `quiz-agent.ts` | Generates quiz questions |
 | `progressAgent` | `progress-agent.ts` | Calculates mastery score |
 | `adaptiveLearningAgent` | `adaptive-learning-agent.ts` | Re-explains weak topics |
@@ -239,10 +239,10 @@ generateRoadmap   (Planner)
    → groundKnowledge   (Grounding)
    → generateLesson    (Teacher) — fallback to verifiedFacts if rejected
    → factCheck         (Fact Checker) — flags, doesn't throw
-   → buildCitations    (Citation Builder + LQS evaluation)
+   → buildCitations    (Citation Builder)
 ```
 
-**Resilience policy:** Steps log warnings instead of throwing on quality gate failures (fact check, LQS). The workflow always completes and produces output.
+**Resilience policy:** Steps log warnings instead of throwing on quality gate failures (fact check). The workflow always completes and produces output.
 
 ### 2. Lesson Workflow (`lessonWorkflow`)
 
@@ -252,7 +252,7 @@ Triggered by `POST /api/lessons` (on-demand lazy generation when user opens a pe
 generateLessonContent (Research Planner)
    → researchLesson   (Research + Rank + Ground)
    → teachLesson      (Teacher + Fact Check)
-   → citeLesson       (Citation Builder + LQS)
+    → citeLesson       (Citation Builder)
 ```
 
 ### 3. Quiz Workflow (`quizWorkflow`)
@@ -266,23 +266,7 @@ generateQuiz             (Quiz Agent)
 
 ---
 
-## Learning Quality Score (LQS)
 
-Auto-evaluated per lesson by `learningReviewerAgent`. Stored in `lessons.lqs`.
-
-| Metric | Max Score |
-|---|---|
-| Citation Coverage | 20 |
-| Concept Coverage | 20 |
-| Difficulty Consistency | 15 |
-| Readability | 15 |
-| Hallucination Risk (inverted) | 20 |
-| Learning Objective Coverage | 10 |
-| **Total** | **100** |
-
-**Original spec threshold:** 90+. **Current behavior:** lessons are saved with whatever score they get (workflows don't throw). The LQS is shown to users as a quality indicator. Future improvement: add a "Regenerate" button for low-LQS lessons.
-
----
 
 ## Database Schema (Convex)
 
@@ -294,7 +278,7 @@ Auto-evaluated per lesson by `learningReviewerAgent`. Stored in `lessons.lqs`.
 | `courses` | Course metadata + status |
 | `roadmaps` | Chapter graph per course |
 | `chapters` | Ordered chapter within course |
-| `lessons` | Lesson metadata + LQS + status (`pending`/`generating`/`ready`/`failed`) |
+| `lessons` | Lesson metadata + status (`pending`/`generating`/`ready`/`failed`) |
 | `lessonContents` | Versioned lesson body (explanation, examples, summary) |
 | `citations` | Per-lesson source citations |
 | `quizzes` | Quiz metadata |
@@ -346,13 +330,17 @@ All API routes:
 
 ## Design System
 
-- **Colors:** White / Black / Gray only. No gradients. No glassmorphism.
-- **Components:** shadcn/ui v4 (Base UI primitives)
-- **Icons:** Lucide
-- **Typography:** Geist (Sans + Mono) loaded via `next/font/google`
-- **Spacing:** 8px grid
-- **Style:** minimal, monochrome, distraction-free, desktop-first
-- **Inspiration:** Claude UI
+> Aligned to the **"Synau Core"** design system (Stitch, `assets/20f9ac6fc2fe4d84ba5e015614b9447f`). Academic Minimalism + Functional Precision.
+
+- **Colors:** Strict monochrome. Canvas = off-white `#f9f9f9`; cards/surfaces = `#ffffff` (tonal layering, **no shadows / no gradients / no glassmorphism**). Primary = near-black, stroke = `#e2e2e2`, meta text = `#5e5e5e`. All via tokens in `globals.css` — no raw `gray-*` literals in pages/features.
+- **App shell:** Persistent **left sidebar** (`AppSidebar`) — brand, "Kursus Baru" CTA, nav w/ active state, user + `signOut`. Inside a lesson, the sidebar swaps to an **LMS course-tree** (`LessonSidebar`, `(lesson)` route group).
+- **Components:** shadcn/ui v4 (Base UI primitives). Shared layout primitives in `src/components/layout/`.
+- **Icons:** Lucide (thin-stroke, monochrome).
+- **Typography:** **Geist** (headings/labels/mono) + **Inter** (body/reading), loaded via `next/font/google`. Fixed: `--font-sans` token now resolves to Geist.
+- **Spacing:** strict 8px grid. Section rhythm 48px / 80px. Content column ≤1200px, lesson reading column ≤768px.
+- **Radius:** 8px base (cards ~12px, buttons/inputs ~8px).
+- **Signature:** "Synau Note" AI block — `#f9f9f9` well + 2px black left rule + sparkle icon (`.synau-ai` in globals.css).
+- **Inspiration:** Notion structure + Claude atmosphere.
 
 ### shadcn/ui v4 specifics
 
@@ -374,8 +362,8 @@ All API routes:
 | **Dashboard** | ✅ Done | Real data, continue learning, summary stats |
 | **Course Generation** | ✅ Done | 9-step workflow, resilient |
 | **Course Detail** | ✅ Done | Chapters + lessons from Convex |
-| **Lesson View** | ✅ Done | Lazy generation, citations, LQS display |
-| **Quiz UI** | ⚠️ Partial | `quiz-view.tsx` built but not integrated into lesson flow |
+| **Lesson View** | ✅ Done | Lazy generation, citations |
+| **Quiz UI** | ✅ Done | `quiz-view.tsx` integrated into lesson flow via "Cek Pemahaman" trigger |
 | **Progress Tracking** | ✅ Done | Per-course mastery + weak topics |
 | **Course Management** | ❌ Not built | Rename / Archive / Delete / Duplicate |
 | **Notifications** | ❌ UI not built | Convex mutations exist |
@@ -504,15 +492,11 @@ npx convex dev --once
 
 ### Bugs / Polish needed
 
-1. **Quiz not integrated** — `quiz-view.tsx` exists but the lesson flow doesn't trigger a quiz after completion. Needs a "Take Quiz" button on lesson page + `/api/quiz` integration.
+1. **Quiz integrated** ✅ — Lesson view now has a "Cek Pemahaman" trigger that lazy-mounts `QuizView` → calls `/api/quiz`. Inline Quick Check after the lesson body, matching the Stitch lesson reference.
 
 2. **Adaptive Learning not surfaced** — Workflow produces `adaptiveContent` but UI doesn't show it after quiz failure. Needs hook-up in `quiz-view.tsx`.
 
-3. **LQS threshold enforcement** — Currently lessons are saved regardless of LQS. Consider:
-   - Show LQS badge prominently on lesson cards
-   - Add "Regenerate" button for lessons with LQS < 70
-
-4. **No "Edit Roadmap" step** — Spec says user should approve/edit roadmap before lesson generation. Currently the workflow runs end-to-end without approval. Consider splitting into two API calls.
+3. **No "Edit Roadmap" step** — Spec says user should approve/edit roadmap before lesson generation. Currently the workflow runs end-to-end without approval. Consider splitting into two API calls.
 
 5. **Course Management missing** — No UI for rename / archive / delete / duplicate. Convex mutations exist (`courses:rename`, `courses:archive`, `courses:remove`).
 
@@ -549,6 +533,9 @@ npx convex dev --once
 - **3 workflows** — Course gen (resilient), lesson, quiz
 - **Real data UI** — All pages query Convex, no mock data
 - **URL bug fix** — LLM provider was double-appending `/chat/completions`
-- **Resilience fixes** — Workflows no longer throw on fact-check / LQS failures
+
 - **HTTP gateway** — Convex functions exposed via `/query` & `/mutation` for SSR
 - **Current model:** `gemini/gemini-2.5-flash-lite` (GPT-5 Nano quota exhausted)
+- **Frontend overhaul — Synau Core design system** — Full UI overhaul aligned to the Stitch "Synau Core" reference (Academic Minimalism: high-contrast monochrome, off-white `#f9f9f9` canvas + white cards for tonal layering, no shadows/gradients, Geist headings + Inter body, 8px grid, 4px corners). Design tokens rewritten in `globals.css`; **fixed the Geist font bug** (`--font-sans` token was unresolved, font silently fell back). Built a **persistent left sidebar app shell** (`AppSidebar`: brand, "Kursus Baru" CTA, nav with active state, user + `signOut`) replacing the top-nav. Added **LMS course-tree sidebar** (`LessonSidebar`) via a new `(lesson)` route group — entering a lesson swaps the global sidebar for the chapter/lesson tree with status icons + active highlight (URL unchanged). New shared primitives in `components/layout/`: `PageHeader`, `SectionLabel`, `EmptyState`, `LoadingState`, `StatCard`, `AiBlock` (signature "Synau Note" AI block: `#f9f9f9` well + 2px black left rule + sparkle), `BackLink`. All pages overhauled for consistency — **zero raw `gray-*`/`black`/`red-*` literals remain** in pages/features/layout (all use design tokens). **Quiz integrated** into the lesson flow ("Cek Pemahaman" → lazy-mount `QuizView`), resolving known issue #1. Lesson nav fixed to use `next/link` (no more full-reload `<a>`). `tsc` + `lint` clean.
+
+- **LQS removal** — Learning Quality Score feature fully removed from all layers (FE, BE, DB, Mastra). Deleted `learning-reviewer-agent`, removed `lqs` field from lessons schema (kept optional for backward compat), stripped LQS from course-generation-workflow and lesson-workflow, removed LQS from all API routes and UI components, updated spec.md and README.md

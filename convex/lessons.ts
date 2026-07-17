@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
 
 // ─── Queries ──────────────────────────────────────────────────────────────
 
@@ -39,6 +40,82 @@ export const getCitationsByLesson = query({
       .query('citations')
       .withIndex('by_lesson', (q) => q.eq('lessonId', args.lessonId))
       .collect();
+  },
+});
+
+// Lesson page: returns lesson + course + chapter + (optional) content &
+// citations + prev/next lesson ids in a single query. Replaces 4-8 sequential
+// round-trips and removes the sequential per-chapter prev/next scan.
+export const getLessonPage = query({
+  args: { lessonId: v.id('lessons') },
+  handler: async (ctx, args) => {
+    const lesson = await ctx.db.get(args.lessonId);
+    if (!lesson) return null;
+
+    const [course, chapter, chapters, allLessons] = await Promise.all([
+      ctx.db.get(lesson.courseId),
+      ctx.db.get(lesson.chapterId),
+      ctx.db
+        .query('chapters')
+        .withIndex('by_course_order', (q) =>
+          q.eq('courseId', lesson.courseId)
+        )
+        .take(100),
+      ctx.db
+        .query('lessons')
+        .withIndex('by_course', (q) => q.eq('courseId', lesson.courseId))
+        .take(500),
+    ]);
+
+    // Flatten all lessons in chapter->order sequence to compute prev/next.
+    const lessonsByChapter = new Map<string, typeof allLessons>();
+    for (const l of allLessons) {
+      const arr = lessonsByChapter.get(l.chapterId);
+      if (arr) arr.push(l);
+      else lessonsByChapter.set(l.chapterId, [l]);
+    }
+    const orderedLessonIds: string[] = [];
+    for (const ch of chapters) {
+      const ls = (lessonsByChapter.get(ch._id) ?? []).sort(
+        (a, b) => a.order - b.order
+      );
+      for (const l of ls) orderedLessonIds.push(l._id);
+    }
+    const currentIdx = orderedLessonIds.indexOf(lesson._id);
+    const prevLessonId =
+      currentIdx > 0 ? orderedLessonIds[currentIdx - 1] : null;
+    const nextLessonId =
+      currentIdx >= 0 && currentIdx < orderedLessonIds.length - 1
+        ? orderedLessonIds[currentIdx + 1]
+        : null;
+
+    let content: Doc<'lessonContents'> | null = null;
+    let citations: Doc<'citations'>[] = [];
+    if (lesson.status === 'ready') {
+      const [contentDoc, citationDocs] = await Promise.all([
+        ctx.db
+          .query('lessonContents')
+          .withIndex('by_lesson', (q) => q.eq('lessonId', lesson._id))
+          .order('desc')
+          .first(),
+        ctx.db
+          .query('citations')
+          .withIndex('by_lesson', (q) => q.eq('lessonId', lesson._id))
+          .take(50),
+      ]);
+      content = contentDoc;
+      citations = citationDocs;
+    }
+
+    return {
+      lesson,
+      course,
+      chapter,
+      content,
+      citations,
+      prevLessonId,
+      nextLessonId,
+    };
   },
 });
 
@@ -83,11 +160,10 @@ export const setGenerating = mutation({
 });
 
 export const setReady = mutation({
-  args: { id: v.id('lessons'), lqs: v.number() },
+  args: { id: v.id('lessons') },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, {
       status: 'ready',
-      lqs: args.lqs,
       updatedAt: Date.now(),
     });
   },
@@ -107,15 +183,87 @@ export const saveContent = mutation({
   args: {
     lessonId: v.id('lessons'),
     objective: v.string(),
-    explanation: v.string(),
-    examples: v.array(
-      v.object({
-        title: v.string(),
-        content: v.string(),
-      })
+    // Dynamic blocks (primary content shape). Mutually tolerant with the
+    // legacy flat fields below — at least one representation is expected.
+    blocks: v.optional(
+      v.array(
+        v.union(
+          v.object({
+            type: v.literal('text'),
+            title: v.optional(v.string()),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('definition'),
+            term: v.string(),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('example'),
+            title: v.optional(v.string()),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('analogy'),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('steps'),
+            title: v.optional(v.string()),
+            steps: v.array(v.string()),
+          }),
+          v.object({
+            type: v.literal('table'),
+            title: v.optional(v.string()),
+            headers: v.array(v.string()),
+            rows: v.array(v.array(v.string())),
+          }),
+          v.object({
+            type: v.literal('code'),
+            language: v.optional(v.string()),
+            content: v.string(),
+            caption: v.optional(v.string()),
+          }),
+          v.object({
+            type: v.literal('callout'),
+            variant: v.union(
+              v.literal('info'),
+              v.literal('tip'),
+              v.literal('warning'),
+              v.literal('success')
+            ),
+            title: v.optional(v.string()),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('quote'),
+            content: v.string(),
+            attribution: v.optional(v.string()),
+          }),
+          v.object({
+            type: v.literal('keyPoints'),
+            title: v.optional(v.string()),
+            points: v.array(v.string()),
+          }),
+          v.object({
+            type: v.literal('summary'),
+            content: v.string(),
+          })
+        )
+      )
     ),
-    summary: v.string(),
-    keyPoints: v.array(v.string()),
+    // Legacy flat fields (optional — for back-compat only).
+    explanation: v.optional(v.string()),
+    examples: v.optional(
+      v.array(
+        v.object({
+          title: v.string(),
+          content: v.string(),
+        })
+      )
+    ),
+    summary: v.optional(v.string()),
+    keyPoints: v.optional(v.array(v.string())),
     version: v.number(),
   },
   handler: async (ctx, args) => {

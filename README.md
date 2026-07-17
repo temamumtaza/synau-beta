@@ -1,6 +1,6 @@
 # Synau — AI Learning OS
 
-Platform pembelajaran berbasis AI. AI membuat roadmap, lesson, kuis, dan tracking progress secara otomatis — semuanya dengan sumber tepercaya dan Learning Quality Score (LQS).
+Platform pembelajaran berbasis AI. AI membuat roadmap, lesson, kuis, dan tracking progress secara otomatis — semuanya dengan sumber tepercaya.
 
 **Repo:** `github.com/temamumtaza/synau-beta`
 **Domain:** synau.in

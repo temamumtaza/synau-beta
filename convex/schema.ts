@@ -87,7 +87,7 @@ export default defineSchema({
       v.literal('ready'),
       v.literal('failed')
     ),
-    lqs: v.optional(v.number()), // Learning Quality Score 0-100
+    lqs: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -96,18 +96,92 @@ export default defineSchema({
     .index('by_chapter_order', ['chapterId', 'order']),
 
   // ─── Lesson Contents ──────────────────────────────────────────────────────
+  // Dynamic blocks are the primary content shape. Legacy flat fields
+  // (explanation/examples/summary/keyPoints) are kept optional for documents
+  // generated before the blocks migration. Renderers prefer `blocks`.
   lessonContents: defineTable({
     lessonId: v.id('lessons'),
     objective: v.string(),
-    explanation: v.string(),
-    examples: v.array(
-      v.object({
-        title: v.string(),
-        content: v.string(),
-      })
+    // Dynamic content blocks (primary). See blockValidator below.
+    blocks: v.optional(
+      v.array(
+        v.union(
+          v.object({
+            type: v.literal('text'),
+            title: v.optional(v.string()),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('definition'),
+            term: v.string(),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('example'),
+            title: v.optional(v.string()),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('analogy'),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('steps'),
+            title: v.optional(v.string()),
+            steps: v.array(v.string()),
+          }),
+          v.object({
+            type: v.literal('table'),
+            title: v.optional(v.string()),
+            headers: v.array(v.string()),
+            rows: v.array(v.array(v.string())),
+          }),
+          v.object({
+            type: v.literal('code'),
+            language: v.optional(v.string()),
+            content: v.string(),
+            caption: v.optional(v.string()),
+          }),
+          v.object({
+            type: v.literal('callout'),
+            variant: v.union(
+              v.literal('info'),
+              v.literal('tip'),
+              v.literal('warning'),
+              v.literal('success')
+            ),
+            title: v.optional(v.string()),
+            content: v.string(),
+          }),
+          v.object({
+            type: v.literal('quote'),
+            content: v.string(),
+            attribution: v.optional(v.string()),
+          }),
+          v.object({
+            type: v.literal('keyPoints'),
+            title: v.optional(v.string()),
+            points: v.array(v.string()),
+          }),
+          v.object({
+            type: v.literal('summary'),
+            content: v.string(),
+          })
+        )
+      )
     ),
-    summary: v.string(),
-    keyPoints: v.array(v.string()),
+    // Legacy flat fields — optional, only present on pre-migration documents.
+    explanation: v.optional(v.string()),
+    examples: v.optional(
+      v.array(
+        v.object({
+          title: v.string(),
+          content: v.string(),
+        })
+      )
+    ),
+    summary: v.optional(v.string()),
+    keyPoints: v.optional(v.array(v.string())),
     version: v.number(), // increments on regeneration
     createdAt: v.number(),
   }).index('by_lesson', ['lessonId']),
